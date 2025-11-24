@@ -21,7 +21,7 @@ export default function Header() {
                 <h1 className="text-lg font-bold">ねこマップ</h1>
 
                 <div className="avatar">
-                    <div className="w-9 h-9 rounded-full ring ring-gray-300">
+                    <div className="w-9 h-9 rounded-full ring ring-gray-300 cursor-pointer">
                     </div>
                 </div>
             </div>
