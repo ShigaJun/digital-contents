@@ -16,7 +16,7 @@ const Timeline = ({ view, setView }: TimelineProps) => {
        {view !== 'map' && (
         <button
           onClick={() => setView(view === 'split' ? 'timeline' : 'split')}
-          className="sticky top-4 right-4 bg-white/70 backdrop-blur-sm p-2 rounded-md shadow-lg hover:bg-white z-10 float-right mr-4"
+          className="sticky top-4 right-4 bg-white/70 backdrop-blur-sm p-2 rounded-md shadow-lg hover:bg-white z-10 float-right mr-4 cursor-pointer"
         >
           <Image
             src={view === 'split' ? '/fullscreen_icon.png' : '/fullscreen_close_icon.png'}

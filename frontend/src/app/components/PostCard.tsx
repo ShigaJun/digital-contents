@@ -47,11 +47,11 @@ const PostCard = ({ post }: PostCardProps) => {
 
         {/* Action Buttons */}
         <div className="flex items-center justify-start space-x-8 mt-3 text-gray-500">
-          <button className="flex items-center space-x-1 hover:text-pink-500">
+          <button className="flex items-center space-x-1 hover:text-pink-500 cursor-pointer">
             <span role="img" aria-label="likes">❤️</span>
             <span>{post.likeCount}</span>
           </button>
-          <button className="flex items-center space-x-1 hover:text-blue-500">
+          <button className="flex items-center space-x-1 hover:text-blue-500 cursor-pointer">
             <span role="img" aria-label="replies">💬</span>
             <span>{post.replies.length}</span>
           </button>

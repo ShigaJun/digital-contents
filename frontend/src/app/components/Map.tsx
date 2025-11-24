@@ -18,7 +18,7 @@ export default function Map({ view, setView }: MapProps) {
             {view !== 'timeline' && (
               <button
                 onClick={() => setView(view === 'split' ? 'map' : 'split')}
-                className="absolute bottom-4 right-4 bg-white/70 backdrop-blur-sm p-2 rounded-md shadow-lg hover:bg-white"
+                className="absolute bottom-4 right-4 bg-white/70 backdrop-blur-sm p-2 rounded-md shadow-lg hover:bg-white cursor-pointer"
               >
                 <Image
                   src={view === 'split' ? '/fullscreen_icon.png' : '/fullscreen_close_icon.png'}
