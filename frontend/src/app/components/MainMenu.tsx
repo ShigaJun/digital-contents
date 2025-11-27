@@ -35,7 +35,7 @@ export default function MainMenu({ open, onClose }: Props) {
         </button>
         <button
           className="btn btn-outline btn-sm justify-start"
-          onClick={() => go("/")}
+          onClick={() => go("/post")}
         >
           投稿する
         </button>
