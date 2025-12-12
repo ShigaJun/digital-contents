@@ -41,7 +41,7 @@ export default function Home() {
           <div className="w-128 h-full flex flex-col border-r border-gray-200">
             <TabsBar />
             <div className="flex-1 overflow-y-auto">
-              <Timeline view="timeline" setView={setView} />
+              <Timeline view="timeline" setView={setView} isPC={isPC} />
             </div>
           </div>
           <div className="flex-1 h-full">
@@ -69,7 +69,7 @@ export default function Home() {
                 : "h-0"
             }`}
           >
-            <Timeline view={view} setView={setView} />
+            <Timeline view={view} setView={setView} isPC={isPC} />
           </div>
         </div>
       )}
