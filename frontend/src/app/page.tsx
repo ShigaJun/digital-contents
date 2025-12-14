@@ -1,55 +1,82 @@
 "use client";
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Header from "./components/Header";
-import Map from "./components/Map"
+import { useState, useEffect, useContext } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Map from "./components/Map";
 import TabsBar from "./components/TabsBar";
 import Timeline from "./components/Timeline";
+import { LayoutContext } from "@/lib/contexts/LayoutContext";
 
 export default function Home() {
-  const [view, setView] = useState<'split' | 'map' | 'timeline'>('split'); // 'split', 'map', 'timeline'
+  const [view, setView] = useState<"split" | "map" | "timeline">("split");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  const layoutContext = useContext(LayoutContext);
+  if (!layoutContext) {
+    throw new Error("LayoutContext must be used within a LayoutProvider");
+  }
+  const { isPC, setIsPostModalOpen } = layoutContext;
+
   useEffect(() => {
-    if (searchParams.get('login') === 'success') {
+    if (searchParams.get("login") === "success") {
       setShowSuccessModal(true);
       // URLからクエリパラメータを削除
-      router.replace('/', { scroll: false });
+      router.replace("/", { scroll: false });
     }
   }, [searchParams, router]);
 
+  const handlePostButtonClick = () => {
+    if (isPC) {
+      setIsPostModalOpen(true);
+    } else {
+      router.push("/post");
+    }
+  };
+
   return (
-    <main className="flex flex-col h-screen">
-      <Header />
-      <div className="flex-1 flex flex-col min-h-0">
-        <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${
-            view === 'split' ? 'h-1/2' : view === 'map' ? 'flex-1' : 'h-0'
-          }`}
-        >
-          <Map view={view} setView={setView} />
+    <>
+      {isPC ? (
+        <>
+          <div className="w-128 h-full flex flex-col border-r border-gray-200">
+            <TabsBar />
+            <div className="flex-1 overflow-y-auto">
+              <Timeline view="timeline" setView={setView} isPC={isPC} />
+            </div>
+          </div>
+          <div className="flex-1 h-full">
+            <Map view="map" setView={setView} />
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex flex-col min-h-0 w-full">
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              view === "split" ? "h-1/2" : view === "map" ? "flex-1" : "h-0"
+            }`}
+          >
+            <Map view={view} setView={setView} />
+          </div>
+          <div className={`${view === "map" ? "hidden" : ""}`}>
+            <TabsBar />
+          </div>
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              view === "split"
+                ? "flex-1 min-h-0"
+                : view === "timeline"
+                ? "flex-1 min-h-0"
+                : "h-0"
+            }`}
+          >
+            <Timeline view={view} setView={setView} isPC={isPC} />
+          </div>
         </div>
-        <div className={`${view === 'map' ? 'hidden' : ''}`}>
-          <TabsBar />
-        </div>
-        <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${
-            view === 'split'
-              ? 'flex-1 min-h-0'
-              : view === 'timeline'
-              ? 'flex-1 min-h-0'
-              : 'h-0'
-          }`}
-        >
-          <Timeline view={view} setView={setView} />
-        </div>
-      </div>
+      )}
 
       {/* 右下の投稿ボタン */}
       <button
-        onClick={() => router.push("/post")}
+        onClick={handlePostButtonClick}
         className=" fixed right-6 bottom-6 z-50 btn btn-primary flex items-center gap-2 px-5 py-4 rounded-full"
       >
         <svg
@@ -76,11 +103,16 @@ export default function Home() {
             <h3 className="font-bold text-lg">お知らせ</h3>
             <p className="py-4">ログインしました。</p>
             <div className="modal-action">
-              <button className="btn" onClick={() => setShowSuccessModal(false)}>閉じる</button>
+              <button
+                className="btn"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                閉じる
+              </button>
             </div>
           </div>
         </dialog>
       )}
-    </main>
+    </>
   );
 }

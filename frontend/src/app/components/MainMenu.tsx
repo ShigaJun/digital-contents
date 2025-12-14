@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useContext } from "react";
+import { LayoutContext } from "@/lib/contexts/LayoutContext";
 
 type Props = {
   open: boolean;
@@ -9,6 +11,11 @@ type Props = {
 
 export default function MainMenu({ open, onClose }: Props) {
   const router = useRouter();
+  const layoutContext = useContext(LayoutContext);
+  if (!layoutContext) {
+    throw new Error("LayoutContext must be used within a LayoutProvider");
+  }
+  const { isPC, setIsPostModalOpen } = layoutContext;
 
   const go = (path: string) => {
     router.push(path);
@@ -35,7 +42,14 @@ export default function MainMenu({ open, onClose }: Props) {
         </button>
         <button
           className="btn btn-outline btn-sm justify-start"
-          onClick={() => go("/post")}
+          onClick={() => {
+            if (isPC) {
+              setIsPostModalOpen(true);
+              onClose(); // メニューを閉じる
+            } else {
+              go("/post");
+            }
+          }}
         >
           投稿する
         </button>
