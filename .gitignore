@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # vscode local settings
 .vscode/
+
+# GEMINI.md
+GEMINI.md
