@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import Map from "./Map";
 import Button from "./Button";
 
@@ -10,19 +11,19 @@ type PostFormProps = {
 
 export default function PostForm({ onClose }: PostFormProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [comment, setComment] = useState("");
 
   // 画像プレビュー表示のためのURL生成
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
+  const previewUrl = useMemo(() => {
+    if (!file) return null;
+    return URL.createObjectURL(file);
   }, [file]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg">
@@ -44,11 +45,14 @@ export default function PostForm({ onClose }: PostFormProps) {
 
           <div className="mt-6">
             {previewUrl ? (
-              <div className="w-full max-w-full h-56 md:h-72 bg-gray-100 border rounded-md overflow-hidden flex items-center justify-center">
-                <img
+              <div className="relative w-full max-w-full h-56 md:h-72 bg-gray-100 border rounded-md overflow-hidden flex items-center justify-center">
+                <Image
                   src={previewUrl}
                   alt="preview"
-                  className="object-contain w-full h-full"
+                  fill
+                  sizes="100vw"
+                  style={{ objectFit: "contain" }}
+                  unoptimized
                 />
               </div>
             ) : (
