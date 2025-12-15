@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Map from "./Map";
 import Button from "./Button";
+import { compressImage } from "@/lib/image/compressImage";
+
 
 type PostFormProps = {
   onClose?: () => void; // モーダルを閉じるための関数
@@ -25,6 +27,22 @@ export default function PostForm({ onClose }: PostFormProps) {
     };
   }, [previewUrl]);
 
+  // 画像圧縮
+  const handleImageSelect = async (f: File | null) => {
+    if (!f) {
+      setFile(null);
+      return;
+    }
+    try {
+      const compressed = await compressImage(f);
+      setFile(compressed);
+    } catch (e) {
+      console.error(e);
+      alert("画像の圧縮に失敗しました");
+    }
+  };
+
+
   return (
     <div className="flex flex-col h-full bg-white rounded-lg">
       <div className="flex-1 px-5 pt-6 pb-4 overflow-y-auto">
@@ -37,7 +55,7 @@ export default function PostForm({ onClose }: PostFormProps) {
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0] ?? null;
-                setFile(f);
+                handleImageSelect(f);
               }}
             />
             <span>画像をアップロードする</span>
