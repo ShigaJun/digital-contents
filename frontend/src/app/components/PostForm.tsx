@@ -5,6 +5,8 @@ import Image from "next/image";
 import SelectableMap from "./SelectableMap";
 import Button from "./Button";
 import { compressImage } from "@/lib/image/compressImage";
+import { createPost } from "@/lib/posts/createPosts";
+
 
 
 type PostFormProps = {
@@ -40,6 +42,42 @@ export default function PostForm({ onClose }: PostFormProps) {
     } catch (e) {
       console.error(e);
       alert("画像の圧縮に失敗しました");
+    }
+  };
+
+  const handleSubmitPost = async () => {
+    try {
+      if (!comment.trim()) {
+        alert("コメントを入力してください");
+        return;
+      }
+
+      if (!location) {
+        alert("位置情報を選択してください");
+        return;
+      }
+
+      await createPost({
+        caption: comment,
+        latitude: location.lat,
+        longitude: location.lng,
+        imageFile: file,
+      });
+
+
+      alert("投稿しました");
+
+      // 状態リセット（任意だが強くおすすめ）
+      setComment("");
+      setLocation(null);
+      setFile(null);
+
+      onClose?.();
+    } catch (e) {
+      console.error(e);
+      alert(
+        e instanceof Error ? e.message : "投稿に失敗しました"
+      );
     }
   };
 
@@ -115,7 +153,11 @@ export default function PostForm({ onClose }: PostFormProps) {
           </button>
 
           <div>
-            <Button>
+            <button
+              type="button"
+              className="btn btn-primary rounded-full px-6 py-3 shadow-sm"
+              onClick={handleSubmitPost}
+            >
               <div className="flex items-center gap-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -124,11 +166,16 @@ export default function PostForm({ onClose }: PostFormProps) {
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14 5l7 7m0 0l-7 7m7-7H3"
+                  />
                 </svg>
                 <span>投稿する</span>
               </div>
-            </Button>
+            </button>
           </div>
         </div>
       </div>
