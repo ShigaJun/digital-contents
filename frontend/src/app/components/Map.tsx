@@ -66,6 +66,7 @@ export default function Map({ view, setView, onPinClick }: MapProps) {
           username: row.users?.name ?? 'unknown',
           location: undefined,
           likeCount: 0, // TODO: Implement like count fetching
+          isLiked: false,
           replies: [], // TODO: Implement reply fetching
         }));
         setPosts(mappedPosts);
