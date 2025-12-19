@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Dispatch, SetStateAction } from 'react'
+import { useSearchParams } from 'next/navigation'
 import PostCard from './PostCard'
-import { Dispatch, SetStateAction } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import type { Post } from '@/types/post'
@@ -34,6 +34,8 @@ const Timeline = ({ view, setView, isPC, onMoveMap }: TimelineProps) => {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams();
+  const filter = searchParams.get('filter')
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -41,11 +43,9 @@ const Timeline = ({ view, setView, isPC, onMoveMap }: TimelineProps) => {
       setError(null)
 
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
 
-      const { data: authData } = await supabase.auth.getUser()
-      const user = authData?.user ?? null
-
-      const { data, error } = await supabase
+      let query = supabase
         .from('posts')
         .select(`
           post_id,
@@ -60,18 +60,47 @@ const Timeline = ({ view, setView, isPC, onMoveMap }: TimelineProps) => {
             avatar_url
           )
         `)
-        .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Error fetching posts:', error)
-        setError(error.message)
+      if (filter === 'my_posts' && user) {
+        query = query.eq('user_id', user.id)
+      } else if (filter === 'favorites' && user) {
+        const { data: favoritePosts, error: favError } = await supabase
+          .from('favorites')
+          .select('post_id')
+          .eq('user_id', user.id)
+
+        if (favError) {
+          console.error('Error fetching favorites:', favError)
+          setError(favError.message)
+          setPosts([])
+          setLoading(false)
+          return
+        }
+        
+        const postIds = favoritePosts.map(fav => fav.post_id)
+        if (postIds.length === 0) {
+          setPosts([])
+          setLoading(false)
+          return
+        }
+        query = query.in('post_id', postIds)
+      } else if ((filter === 'my_posts' || filter === 'favorites') && !user) {
+        setPosts([])
+        setLoading(false)
+        return
+      }
+
+      const { data, error: queryError } = await query.order('created_at', { ascending: false })
+
+      if (queryError) {
+        console.error('Error fetching posts:', queryError)
+        setError(queryError.message)
         setPosts([])
         setLoading(false)
         return
       }
 
       const rows = (data as unknown as FetchedPost[] | null) ?? []
-
       if (rows.length === 0) {
         setPosts([])
         setLoading(false)
@@ -79,8 +108,6 @@ const Timeline = ({ view, setView, isPC, onMoveMap }: TimelineProps) => {
       }
 
       const postIds = rows.map(r => r.post_id)
-
-      // favorites をまとめて取得
       const { data: favData, error: favError } = await supabase
         .from('favorites')
         .select('post_id, user_id')
@@ -88,15 +115,11 @@ const Timeline = ({ view, setView, isPC, onMoveMap }: TimelineProps) => {
 
       if (favError) {
         console.error('Error fetching favorites:', favError)
+        // ここは致命的エラーではないので、フォールバックする
         setError(favError.message)
-        setPosts([])
-        setLoading(false)
-        return
       }
 
       const favs = (favData as FavoriteRow[] | null) ?? []
-
-      // post_idごとの件数、isLiked判定
       const likeCountMap = new Map<number, number>()
       const likedSet = new Set<number>()
 
@@ -114,13 +137,13 @@ const Timeline = ({ view, setView, isPC, onMoveMap }: TimelineProps) => {
         image_url: row.image_url,
         caption: row.caption,
         username: row.users?.name ?? 'unknown',
-        location: undefined, // DBに location 文字列が無いので一旦なし（必要なら後で追加）
+        location: undefined,
         imageUrl: row.image_url ?? undefined,
         body: row.caption ?? '',
         likes: [],
         likeCount: likeCountMap.get(row.post_id) ?? 0,
         isLiked: likedSet.has(row.post_id),
-        replies: [], // PostCardで length を見るので必ず入れる
+        replies: [],
       }))
 
       setPosts(mappedPosts)
@@ -128,7 +151,7 @@ const Timeline = ({ view, setView, isPC, onMoveMap }: TimelineProps) => {
     }
 
     fetchPosts()
-  }, [])
+  }, [filter])
 
   return (
     <div className="relative bg-gray-100 h-full overflow-y-auto">
@@ -149,9 +172,12 @@ const Timeline = ({ view, setView, isPC, onMoveMap }: TimelineProps) => {
         {loading && <div className="p-4 text-sm opacity-60">読み込み中…</div>}
         {error && <div className="p-4 text-sm text-red-600">取得に失敗しました: {error}</div>}
 
-        {!loading && !error && posts.map((post) => (
+        {!loading && !error && posts.length > 0 && posts.map((post) => (
           <PostCard key={post.post_id} post={post} onMoveMap={onMoveMap} />
         ))}
+        {!loading && !error && posts.length === 0 && (
+          <div className="p-4 text-sm opacity-60">投稿はまだありません。</div>
+        )}
       </div>
     </div>
   );
