@@ -7,29 +7,29 @@
 
 ## 主な機能
 
-* 地図上での猫スポット表示（Google Maps JavaScript API）
-* 猫の投稿（写真・特徴・位置情報・コメント）
-* 投稿一覧・詳細の表示
-* Google / GitHub OAuth によるログイン（Supabase Auth）
+- 地図上での猫スポット表示（Google Maps JavaScript API）
+- 猫の投稿（写真・特徴・位置情報・コメント）
+- 投稿一覧・詳細の表示
+- Google / GitHub OAuth によるログイン（Supabase Auth）
 
 ## 使用技術
 
 ### フロントエンド
 
-* Next.js 16
-* React 19
-* TypeScript 5
-* Tailwind CSS 4
-* DaisyUI 5
+- Next.js 16
+- React 19
+- TypeScript 5
+- Tailwind CSS 4
+- DaisyUI 5
 
 ### バックエンド・インフラ
 
-* Supabase
+- Supabase
 
-  * 認証（Auth）
-  * データベース
-  * ストレージ
-* Google Maps JavaScript API
+  - 認証（Auth）
+  - データベース
+  - ストレージ
+- Google Maps JavaScript API
 
 ※ 現在は API サーバーを別途立てておらず、バックエンド処理は Supabase に集約しています。
 
@@ -51,8 +51,8 @@ npm run dev
 
 使用する Node.js / npm のバージョン：
 
-* Node.js v24.11.1
-* npm 10 以上
+- Node.js v24.11.1
+- npm 10 以上
 
 ## 環境変数
 
@@ -60,8 +60,8 @@ npm run dev
 
 例：
 
-* Supabase URL / Anon Key
-* Google Maps API Key
+- Supabase URL / Anon Key
+- Google Maps API Key
 
 ※ 実際の値はリポジトリにコミットしないでください。
 
@@ -76,13 +76,13 @@ npm run dev
 
 ## 使用素材・クレジット
 
-* アプリアイコン
+- アプリアイコン
   フリーペンシル（iconbu）
   [https://iconbu.com/](https://iconbu.com/)
 
 ## 注意事項
 
-* `.next/` と `node_modules/` は Git に含めない（`.gitignore` に記載）
-* Supabase の接続情報は `.env.local` に記述し、値は絶対に共有しない
-* ブランチ名は `feature/〇〇`、`fix/〇〇` などで統一
-* 基本作業ディレクトリは `frontend/` を使用
+- `.next/` と `node_modules/` は Git に含めない（`.gitignore` に記載）
+- Supabase の接続情報は `.env.local` に記述し、値は絶対に共有しない
+- ブランチ名は `feature/〇〇`、`fix/〇〇` などで統一
+- 基本作業ディレクトリは `frontend/` を使用
