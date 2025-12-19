@@ -34,6 +34,13 @@ export const useComments = (postId: number) => {
     setError(null);
 
     try {
+      // ユーザー情報を取得
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+
+      // コメント一覧を取得
       const { data, error: fetchError } = await supabase
         .from("comments")
         .select(
@@ -80,6 +87,7 @@ export const useComments = (postId: number) => {
         };
       });
 
+      // ログインしていない場合はいいね状態をチェックせずに終了
       if (!user) {
         setComments(baseComments);
         return;
@@ -99,7 +107,7 @@ export const useComments = (postId: number) => {
 
       if (likedError) {
         console.error("Error fetching comment favorites:", likedError);
-        setComments(baseComments);
+        setComments(baseComments); // いいね取得失敗でもコメントは表示
         return;
       }
 
@@ -114,18 +122,11 @@ export const useComments = (postId: number) => {
     } finally {
       setLoading(false);
     }
-  }, [supabase, postId, user]);
+  }, [supabase, postId]);
 
   useEffect(() => {
-    const run = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-      await fetchComments();
-    };
-    run();
-  }, [supabase, fetchComments]);
+    fetchComments();
+  }, [fetchComments]);
 
   const visibleComments = useMemo(() => {
     const arr = [...comments];
