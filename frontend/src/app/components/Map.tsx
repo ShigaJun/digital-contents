@@ -60,6 +60,7 @@ export default function Map({ view, setView, onPinClick, center }: MapProps) {
 
       if (error) {
         console.error("Error fetching posts:", error);
+        setPosts([]);
       } else {
         const mappedPosts: Post[] = (data as unknown as FetchedPost[] ?? []).map((row) => ({
           post_id: row.post_id,
@@ -71,9 +72,9 @@ export default function Map({ view, setView, onPinClick, center }: MapProps) {
           caption: row.caption,
           username: row.users?.name ?? 'unknown',
           location: undefined,
-          likeCount: 0, // TODO: Implement like count fetching
+          likeCount: 0,
           isLiked: false,
-          replies: [], // TODO: Implement reply fetching
+          replies: [],
         }));
         setPosts(mappedPosts);
       }
