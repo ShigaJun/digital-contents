@@ -15,5 +15,6 @@ export interface Post {
   likeCount: number;
   isLiked: boolean;
 
+  commentCount: number;
   replies: Reply[];
 }
