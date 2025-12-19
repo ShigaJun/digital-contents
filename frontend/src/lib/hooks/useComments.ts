@@ -1,41 +1,41 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { User } from '@supabase/supabase-js'
-import type { Comment } from '@/types/comment'
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import type { Comment } from "@/types/comment";
 
 type CommentRow = {
-  comment_id: number
-  post_id: number
-  user_id: string
-  content: string
-  created_at: string
+  comment_id: number;
+  post_id: number;
+  user_id: string;
+  content: string;
+  created_at: string;
   users:
-  | { name: string | null; avatar_url: string | null }
-  | { name: string | null; avatar_url: string | null }[]
-  | null
-  comment_favorites?: { count: number }[] | null
-}
+    | { name: string | null; avatar_url: string | null }
+    | { name: string | null; avatar_url: string | null }[]
+    | null;
+  comment_favorites?: { count: number }[] | null;
+};
 
-export type SortType = 'popular' | 'new'
+export type SortType = "popular" | "new";
 
 export const useComments = (postId: number) => {
-  const [comments, setComments] = useState<Comment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [user, setUser] = useState<User | null>(null)
-  const [sort, setSort] = useState<SortType>('popular')
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [sort, setSort] = useState<SortType>("popular");
 
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchComments = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       const { data, error: fetchError } = await supabase
-        .from('comments')
+        .from("comments")
         .select(
           `
           comment_id,
@@ -50,21 +50,21 @@ export const useComments = (postId: number) => {
           comment_favorites(count)
         `
         )
-        .eq('post_id', postId)
-        .order('created_at', { ascending: true })
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
 
       if (fetchError) {
-        console.error('Error fetching comments:', fetchError)
-        setError('コメントの取得に失敗しました。')
-        setComments([])
-        return
+        console.error("Error fetching comments:", fetchError);
+        setError("コメントの取得に失敗しました。");
+        setComments([]);
+        return;
       }
 
-      const rows = (data as CommentRow[] | null) ?? []
+      const rows = (data as CommentRow[] | null) ?? [];
 
       const baseComments: Comment[] = rows.map((row) => {
-        const u = Array.isArray(row.users) ? row.users[0] : row.users
-        const likeCount = row.comment_favorites?.[0]?.count ?? 0
+        const u = Array.isArray(row.users) ? row.users[0] : row.users;
+        const likeCount = row.comment_favorites?.[0]?.count ?? 0;
 
         return {
           comment_id: row.comment_id,
@@ -72,123 +72,130 @@ export const useComments = (postId: number) => {
           user_id: row.user_id,
           content: row.content,
           created_at: row.created_at,
-          users: u ? { name: u.name ?? '名無しさん', avatar_url: u.avatar_url ?? null } : null,
+          users: u
+            ? { name: u.name ?? "名無しさん", avatar_url: u.avatar_url ?? null }
+            : null,
           likeCount,
           isLiked: false,
-        }
-      })
+        };
+      });
 
       if (!user) {
-        setComments(baseComments)
-        return
+        setComments(baseComments);
+        return;
       }
 
-      const commentIds = baseComments.map((c) => c.comment_id)
+      const commentIds = baseComments.map((c) => c.comment_id);
       if (commentIds.length === 0) {
-        setComments(baseComments)
-        return
+        setComments(baseComments);
+        return;
       }
 
       const { data: likedRows, error: likedError } = await supabase
-        .from('comment_favorites')
-        .select('comment_id')
-        .eq('user_id', user.id)
-        .in('comment_id', commentIds)
+        .from("comment_favorites")
+        .select("comment_id")
+        .eq("user_id", user.id)
+        .in("comment_id", commentIds);
 
       if (likedError) {
-        console.error('Error fetching comment favorites:', likedError)
-        setComments(baseComments)
-        return
+        console.error("Error fetching comment favorites:", likedError);
+        setComments(baseComments);
+        return;
       }
 
-      const likedSet = new Set((likedRows ?? []).map((r) => r.comment_id))
+      const likedSet = new Set((likedRows ?? []).map((r) => r.comment_id));
 
       setComments(
         baseComments.map((c) => ({
           ...c,
           isLiked: likedSet.has(c.comment_id),
         }))
-      )
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [supabase, postId, user?.id])
+  }, [supabase, postId, user]);
 
   useEffect(() => {
     const run = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      setUser(user)
-      await fetchComments()
-    }
-    run()
-  }, [supabase, fetchComments])
-  
-  const visibleComments = useMemo(() => {
-    const arr = [...comments]
+      } = await supabase.auth.getUser();
+      setUser(user);
+      await fetchComments();
+    };
+    run();
+  }, [supabase, fetchComments]);
 
-    if (sort === 'new') {
-      return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  const visibleComments = useMemo(() => {
+    const arr = [...comments];
+
+    if (sort === "new") {
+      return arr.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     }
 
     // 人気順：likeCount desc → 同点なら新しい方を上
     return arr.sort((a, b) => {
-      const d = (b.likeCount ?? 0) - (a.likeCount ?? 0)
-      if (d !== 0) return d
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    })
-  }, [comments, sort])
+      const d = (b.likeCount ?? 0) - (a.likeCount ?? 0);
+      if (d !== 0) return d;
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    });
+  }, [comments, sort]);
 
   const toggleReaction = useCallback(
     async (commentId: number, wasLiked: boolean) => {
-      if (!user) return
+      if (!user) return;
 
       // optimistic update
       setComments((prev) =>
         prev.map((c) => {
-          if (c.comment_id !== commentId) return c
-          const nextLiked = !wasLiked
+          if (c.comment_id !== commentId) return c;
+          const nextLiked = !wasLiked;
           return {
             ...c,
             isLiked: nextLiked,
             likeCount: (c.likeCount ?? 0) + (nextLiked ? 1 : -1),
-          }
+          };
         })
-      )
+      );
 
       try {
         if (!wasLiked) {
-          const { error } = await supabase.from('comment_favorites').insert({
+          const { error } = await supabase.from("comment_favorites").insert({
             comment_id: commentId,
             user_id: user.id,
-          })
-          if (error) throw error
+          });
+          if (error) throw error;
         } else {
           const { error } = await supabase
-            .from('comment_favorites')
+            .from("comment_favorites")
             .delete()
-            .eq('comment_id', commentId)
-            .eq('user_id', user.id)
-          if (error) throw error
+            .eq("comment_id", commentId)
+            .eq("user_id", user.id);
+          if (error) throw error;
         }
       } catch (e) {
-        console.error(e)
+        console.error(e);
         // rollback
         setComments((prev) =>
           prev.map((c) => {
-            if (c.comment_id !== commentId) return c
+            if (c.comment_id !== commentId) return c;
             return {
               ...c,
               isLiked: wasLiked,
               likeCount: (c.likeCount ?? 0) + (wasLiked ? 1 : -1),
-            }
+            };
           })
-        )
+        );
       }
     },
     [supabase, user]
-  )
+  );
 
   return {
     comments,
@@ -200,5 +207,5 @@ export const useComments = (postId: number) => {
     visibleComments,
     fetchComments,
     toggleReaction,
-  }
-}
+  };
+};

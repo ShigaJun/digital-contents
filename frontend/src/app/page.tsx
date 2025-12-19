@@ -137,7 +137,7 @@ export default function Home() {
           <div className="modal-box">
             <PostCard post={selectedPost} onMoveMap={(lat, lng) => {
               setMapCenter({ lat, lng })
-            }} />
+            }} onCommentClick={() => setSelectedPost(null)} />
             <div className="modal-action">
               <button className="btn" onClick={() => setSelectedPost(null)}>
                 閉じる
