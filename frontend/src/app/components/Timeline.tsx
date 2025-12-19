@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Dispatch, SetStateAction } from 'react'
+import { useSearchParams } from 'next/navigation'
 import PostCard from './PostCard'
-import { Dispatch, SetStateAction } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import type { Post } from '@/types/post'
@@ -29,13 +29,17 @@ interface TimelineProps {
   view: 'split' | 'map' | 'timeline'
   setView: Dispatch<SetStateAction<'split' | 'map' | 'timeline'>>
   isPC?: boolean
+  onMoveMap: (lat: number, lng: number) => void
 }
 
-const Timeline = ({ view, setView, isPC }: TimelineProps) => {
+const Timeline = ({ view, setView, isPC, onMoveMap }: TimelineProps) => {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [commentingPostId, setCommentingPostId] = useState<number | null>(null)
+
+  const searchParams = useSearchParams()
+  const filter = searchParams.get('filter')
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -43,13 +47,11 @@ const Timeline = ({ view, setView, isPC }: TimelineProps) => {
       setError(null)
 
       const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-      const { data: authData } = await supabase.auth.getUser()
-      const user = authData?.user ?? null
-
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
+      let query = supabase.from('posts').select(`
           post_id,
           user_id,
           caption,
@@ -63,27 +65,54 @@ const Timeline = ({ view, setView, isPC }: TimelineProps) => {
           ),
           comments!post_id(count)
         `)
-        .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Error fetching posts:', error)
-        setError(error.message)
+      if (filter === 'my_posts' && user) {
+        query = query.eq('user_id', user.id)
+      } else if (filter === 'favorites' && user) {
+        const { data: favoritePosts, error: favError } = await supabase
+          .from('favorites')
+          .select('post_id')
+          .eq('user_id', user.id)
+
+        if (favError) {
+          console.error('Error fetching favorites:', favError)
+          setError(favError.message)
+          setPosts([])
+          setLoading(false)
+          return
+        }
+
+        const postIds = favoritePosts.map((fav) => fav.post_id)
+        if (postIds.length === 0) {
+          setPosts([])
+          setLoading(false)
+          return
+        }
+        query = query.in('post_id', postIds)
+      } else if ((filter === 'my_posts' || filter === 'favorites') && !user) {
+        setPosts([])
+        setLoading(false)
+        return
+      }
+
+      const { data, error: queryError } = await query.order('created_at', { ascending: false })
+
+      if (queryError) {
+        console.error('Error fetching posts:', queryError)
+        setError(queryError.message)
         setPosts([])
         setLoading(false)
         return
       }
 
       const rows = (data as unknown as FetchedPost[] | null) ?? []
-
       if (rows.length === 0) {
         setPosts([])
         setLoading(false)
         return
       }
 
-      const postIds = rows.map(r => r.post_id)
-
-      // favorites をまとめて取得
+      const postIds = rows.map((r) => r.post_id)
       const { data: favData, error: favError } = await supabase
         .from('favorites')
         .select('post_id, user_id')
@@ -92,14 +121,9 @@ const Timeline = ({ view, setView, isPC }: TimelineProps) => {
       if (favError) {
         console.error('Error fetching favorites:', favError)
         setError(favError.message)
-        setPosts([])
-        setLoading(false)
-        return
       }
 
       const favs = (favData as FavoriteRow[] | null) ?? []
-
-      // post_idごとの件数、isLiked判定
       const likeCountMap = new Map<number, number>()
       const likedSet = new Set<number>()
 
@@ -117,7 +141,7 @@ const Timeline = ({ view, setView, isPC }: TimelineProps) => {
         image_url: row.image_url,
         caption: row.caption,
         username: row.users?.name ?? 'unknown',
-        location: undefined, // DBに location 文字列が無いので一旦なし（必要なら後で追加）
+        location: undefined,
         imageUrl: row.image_url ?? undefined,
         body: row.caption ?? '',
         likes: [] as string[],
@@ -132,7 +156,7 @@ const Timeline = ({ view, setView, isPC }: TimelineProps) => {
     }
 
     fetchPosts()
-  }, [])
+  }, [filter])
 
   return (
     <>
@@ -155,12 +179,17 @@ const Timeline = ({ view, setView, isPC }: TimelineProps) => {
           {loading && <div className="p-4 text-sm opacity-60">読み込み中…</div>}
           {error && <div className="p-4 text-sm text-red-600">取得に失敗しました: {error}</div>}
 
+          {!loading && !error && posts.length === 0 && (
+            <div className="p-4 text-sm opacity-60">投稿はまだありません。</div>
+          )}
+
           {!loading &&
             !error &&
             posts.map((post) => (
               <PostCard
                 key={post.post_id}
                 post={post}
+                onMoveMap={onMoveMap}
                 onCommentClick={(postId) => setCommentingPostId(postId)}
               />
             ))}
@@ -171,7 +200,7 @@ const Timeline = ({ view, setView, isPC }: TimelineProps) => {
         <CommentPanel postId={commentingPostId} onClose={() => setCommentingPostId(null)} />
       )}
     </>
-  );
-};
+  )
+}
 
-export default Timeline;
+export default Timeline
