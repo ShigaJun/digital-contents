@@ -8,4 +8,7 @@ export interface Comment {
     name: string;
     avatar_url: string | null;
   } | null;
+
+  likeCount: number;
+  isLiked: boolean;
 }
