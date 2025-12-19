@@ -1,19 +1,20 @@
 'use client'
 
-import { useState } from 'react';
-import Image from 'next/image';
-import { formatPostDate } from '@/lib/dateUtils';
-import { createClient } from '@/lib/supabase/client';
-import type { Post } from '@/types/post';
+import { useState } from 'react'
+import Image from 'next/image'
+import { formatPostDate } from '@/lib/dateUtils'
+import { createClient } from '@/lib/supabase/client'
+import type { Post } from '@/types/post'
 
 const supabase = createClient()
 
 interface PostCardProps {
   post: Post
+  onCommentClick: (postId: number) => void
   onMoveMap: (lat: number, lng: number) => void
 }
 
-const PostCard = ({ post, onMoveMap }: PostCardProps) => {
+const PostCard = ({ post, onCommentClick, onMoveMap }: PostCardProps) => {
   const [isLiked, setIsLiked] = useState(post.isLiked)
   const [likeCount, setLikeCount] = useState(post.likeCount)
   const [pending, setPending] = useState(false)
@@ -22,7 +23,10 @@ const PostCard = ({ post, onMoveMap }: PostCardProps) => {
     if (pending) return
     setPending(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       setPending(false)
       return
@@ -30,20 +34,20 @@ const PostCard = ({ post, onMoveMap }: PostCardProps) => {
 
     const nextLiked = !isLiked
 
-    //楽観更新（即UI反映）
+    // 楽観更新（即UI反映）
     setIsLiked(nextLiked)
-    setLikeCount(prev => prev + (nextLiked ? 1 : -1))
+    setLikeCount((prev) => prev + (nextLiked ? 1 : -1))
 
     try {
       if (nextLiked) {
-        //いいね追加
+        // いいね追加
         const { error } = await supabase.from('favorites').insert({
           post_id: post.post_id,
           user_id: user.id,
         })
         if (error) throw error
       } else {
-        //いいね解除
+        // いいね解除
         const { error } = await supabase
           .from('favorites')
           .delete()
@@ -54,7 +58,7 @@ const PostCard = ({ post, onMoveMap }: PostCardProps) => {
     } catch (e) {
       // 失敗したら巻き戻す
       setIsLiked(!nextLiked)
-      setLikeCount(prev => prev - (nextLiked ? 1 : -1))
+      setLikeCount((prev) => prev - (nextLiked ? 1 : -1))
       console.error(e)
     } finally {
       setPending(false)
@@ -72,7 +76,7 @@ const PostCard = ({ post, onMoveMap }: PostCardProps) => {
       <div className="flex-shrink-0">
         <div className="w-12 h-12 rounded-full overflow-hidden">
           <Image
-            src="/images/dummycat.png" // Using the same dummy image as avatar
+            src="/images/dummycat.png"
             alt="user avatar"
             width={48}
             height={48}
@@ -87,9 +91,7 @@ const PostCard = ({ post, onMoveMap }: PostCardProps) => {
         <div className="flex items-center space-x-2">
           <span className="text-base text-black">{post.username}</span>
 
-          {post.location && (
-            <span className="text-xs text-gray-500">{post.location}</span>
-          )}
+          {post.location && <span className="text-xs text-gray-500">{post.location}</span>}
 
           {/* 地図移動ボタン（仮） */}
           {post.latitude && post.longitude && (
@@ -97,10 +99,7 @@ const PostCard = ({ post, onMoveMap }: PostCardProps) => {
               type="button"
               className="btn btn-xs btn-outline gap-1 text-gray-700"
               title="地図で場所を見る"
-              onClick={() => {
-                if (!post.latitude || !post.longitude) return
-                onMoveMap(post.latitude, post.longitude)
-              }}
+              onClick={() => onMoveMap(post.latitude!, post.longitude!)}
             >
               <span aria-hidden>📍</span>
               地図で見る
@@ -133,17 +132,26 @@ const PostCard = ({ post, onMoveMap }: PostCardProps) => {
             className={`flex items-center space-x-1 cursor-pointer ${isLiked ? 'text-pink-500' : 'hover:text-pink-500'
               } ${pending ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
-            <span role="img" aria-label="likes">❤️</span>
+            <span role="img" aria-label="likes">
+              ❤️
+            </span>
             <span>{likeCount}</span>
           </button>
-          <button className="flex items-center space-x-1 hover:text-blue-500 cursor-pointer">
-            <span role="img" aria-label="replies">💬</span>
-            <span>{post.replies.length}</span>
+
+          <button
+            type="button"
+            onClick={() => onCommentClick(post.post_id)}
+            className="flex items-center space-x-1 hover:text-blue-500 cursor-pointer"
+          >
+            <span role="img" aria-label="replies">
+              💬
+            </span>
+            <span>{post.commentCount}</span>
           </button>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default PostCard;
+export default PostCard
