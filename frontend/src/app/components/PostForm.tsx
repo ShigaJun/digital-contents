@@ -3,11 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import SelectableMap from "./SelectableMap";
-import Button from "./Button";
 import { compressImage } from "@/lib/image/compressImage";
 import { createPost } from "@/lib/posts/createPosts";
-
-
 
 type PostFormProps = {
   onClose?: () => void; // モーダルを閉じるための関数
