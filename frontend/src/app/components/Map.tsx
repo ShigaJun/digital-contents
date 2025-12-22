@@ -95,8 +95,34 @@ export default function Map({ view, setView, onPinClick, center }: MapProps) {
         key={post.post_id}
         position={{ lat: post.latitude!, lng: post.longitude! }}
         onClick={() => onPinClick?.(post)}
-      />
+      >
+        {/* 座標の基準点になるラッパー */}
+        <div
+          style={{
+            position: 'relative',
+            width: 0,
+            height: 0,
+          }}
+        >
+          {/* 実際のピン画像 */}
+          <img
+            src="/cat-pin.png"
+            alt="cat pin"
+            width={60}
+            height={60}
+            style={{
+              position: 'absolute',
+              left: 0,
+              bottom: 0,
+              transform: 'translate(-50%, 0)',
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          />
+        </div>
+      </AdvancedMarker>
     ));
+
 
   if (!apiKey) {
     return (
