@@ -1,93 +1,239 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import { useFormStatus } from "react-dom";
-import type { User } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation"; // 追加
-import { createClient } from "@/lib/supabase/client"; // 追加
+import { useState, useRef, useEffect } from 'react'
+import type { User } from '@supabase/supabase-js'
+import { useFormStatus } from 'react-dom'
+import Image from 'next/image'
+import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css'
+import { createClient } from '@/lib/supabase/client'
 
-// 仮のprofile型。実際のusersテーブルの型に合わせて調整してください。
+// #region Helper functions
+function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
+  return centerCrop(
+    makeAspectCrop(
+      {
+        unit: '%',
+        width: 90,
+      },
+      aspect,
+      mediaWidth,
+      mediaHeight,
+    ),
+    mediaWidth,
+    mediaHeight,
+  )
+}
+
+async function canvasPreview(image: HTMLImageElement, canvas: HTMLCanvasElement, crop: Crop) {
+  const ctx = canvas.getContext('2d')
+
+  if (!ctx) {
+    throw new Error('No 2d context')
+  }
+
+  const scaleX = image.naturalWidth / image.width
+  const scaleY = image.naturalHeight / image.height
+  const pixelRatio = window.devicePixelRatio
+  canvas.width = Math.floor(crop.width * scaleX * pixelRatio)
+  canvas.height = Math.floor(crop.height * scaleY * pixelRatio)
+  ctx.scale(pixelRatio, pixelRatio)
+  ctx.imageSmoothingQuality = 'high'
+
+  const cropX = crop.x * scaleX
+  const cropY = crop.y * scaleY
+
+  const centerX = image.naturalWidth / 2
+  const centerY = image.naturalHeight / 2
+
+  ctx.save()
+  ctx.translate(-cropX, -cropY)
+  ctx.translate(centerX, centerY)
+  ctx.translate(-centerX, -centerY)
+  ctx.drawImage(
+    image,
+    0,
+    0,
+    image.naturalWidth,
+    image.naturalHeight,
+    0,
+    0,
+    image.naturalWidth,
+    image.naturalHeight,
+  )
+  ctx.restore()
+}
+// #endregion
+
 type Profile = {
-  name: string;
-  avatar_url: string;
-};
+  name: string
+  avatar_url: string
+}
 
 type Props = {
-  user: User | null;
-  profile: Profile | null;
-  updateAction: (formData: FormData) => Promise<{ success: boolean; message: string }>;
-};
+  user: User | null
+  profile: Profile | null
+  updateAction: (formData: FormData) => Promise<{ success: boolean; message: string }>
+}
 
 const initialState = {
   success: false,
-  message: "",
-};
+  message: '',
+}
 
 function SubmitButton() {
-  const { pending } = useFormStatus();
+  const { pending } = useFormStatus()
   return (
-    <button type="submit" className="btn btn-primary" disabled={pending}>
-      {pending ? "更新中..." : "プロフィールを更新"}
+    <button type="submit" className="btn btn-primary w-full" disabled={pending}>
+      {pending ? '更新中...' : 'プロフィールを更新'}
     </button>
-  );
+  )
 }
 
 export default function UserSettingsForm({ user, profile, updateAction }: Props) {
-  const [responseState, setResponseState] = useState(initialState); // アクションの結果を保持するstate
-  const [showModal, setShowModal] = useState(false);
-  const router = useRouter(); // 追加
-  const supabase = createClient(); // 追加
+  const [responseState, setResponseState] = useState(initialState)
+  const [showResultModal, setShowResultModal] = useState(false)
+  const supabase = createClient()
+
+  // Image crop states
+  const [imgSrc, setImgSrc] = useState('')
+  const [crop, setCrop] = useState<Crop>()
+  const [completedCrop, setCompletedCrop] = useState<Crop>()
+  const [aspect] = useState<number | undefined>(1)
+  const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState(profile?.avatar_url || '')
+  const [isTrimmingModalOpen, setTrimmingModalOpen] = useState(false)
+
+  const imgRef = useRef<HTMLImageElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (responseState.message) {
-      setShowModal(true);
+      setShowResultModal(true)
+      if (responseState.success) {
+        // 成功した場合、新しいアバターURLをプレビューに反映（ページリロードがベストだが、一旦仮対応）
+        // actions.tsから返される新しいURLを使うのが理想
+      }
     }
-  }, [responseState]);
+  }, [responseState])
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
+  const handleCloseResultModal = () => {
+    setShowResultModal(false)
+    if (responseState.success) {
+      window.location.reload() // 成功時はリロードして全体を更新
+    }
+  }
+
+  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setCrop(undefined)
+      const reader = new FileReader()
+      reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''))
+      reader.readAsDataURL(e.target.files[0])
+      setTrimmingModalOpen(true)
+    }
+  }
+
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    if (aspect) {
+      const { width, height } = e.currentTarget
+      setCrop(centerAspectCrop(width, height, aspect))
+    }
+  }
+
+  const handleCropComplete = async () => {
+    const image = imgRef.current
+    if (!image || !completedCrop) {
+      return
+    }
+
+    const canvas = document.createElement('canvas')
+    await canvasPreview(image, canvas, completedCrop)
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          throw new Error('Failed to create blob')
+        }
+        const file = new File([blob], 'avatar.webp', { type: 'image/webp' })
+        setCroppedImageFile(file)
+        setPreviewUrl(URL.createObjectURL(file))
+      },
+      'image/webp',
+      0.9,
+    )
+    setTrimmingModalOpen(false)
+  }
 
   const handleSubmit = async (formData: FormData) => {
-    const result = await updateAction(formData); // Server Actionを直接呼び出す
-    setResponseState(result);
-  };
+    const name = formData.get('name') as string
+    const newFormData = new FormData()
+    newFormData.append('name', name)
+    if (croppedImageFile) {
+      newFormData.append('avatar', croppedImageFile)
+    }
+
+    const result = await updateAction(newFormData)
+    setResponseState(result)
+  }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.assign("/login"); // ページをリロードしてリダイレクト
-  };
+    await supabase.auth.signOut()
+    window.location.assign('/login')
+  }
 
   return (
     <>
-      <form action={handleSubmit} className="space-y-4 max-w-md">
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700"
+      <form action={handleSubmit} className="space-y-6 max-w-md mx-auto">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="avatar">
+            <div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+              <Image
+                src={previewUrl || '/images/dummycat.png'}
+                alt="Avatar preview"
+                width={96}
+                height={96}
+                className="object-cover"
+              />
+            </div>
+          </div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={onSelectFile}
+            style={{ display: 'none' }}
+            accept="image/*"
+          />
+          <button
+            type="button"
+            className="btn btn-sm btn-outline"
+            onClick={() => fileInputRef.current?.click()}
           >
+            画像を変更
+          </button>
+        </div>
+
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             メールアドレス
           </label>
           <input
             type="email"
             id="email"
-            value={user?.email || ""}
+            value={user?.email || ''}
             disabled
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 cursor-not-allowed"
           />
         </div>
         <div>
-          <label
-            htmlFor="name"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
             ユーザー名
           </label>
           <input
             type="text"
             id="name"
             name="name"
-            defaultValue={profile?.name || ""}
+            defaultValue={profile?.name || ''}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             placeholder="ねこマスター"
           />
@@ -95,27 +241,71 @@ export default function UserSettingsForm({ user, profile, updateAction }: Props)
         <SubmitButton />
       </form>
 
-      <div className="mt-8"> {/* 追加 */}
-        <button className="btn btn-error" onClick={handleLogout}> {/* 追加 */}
+      <div className="mt-8 text-center">
+        <button className="btn btn-error" onClick={handleLogout}>
           ログアウト
         </button>
       </div>
 
-      {showModal && (
+      {/* Result Modal */}
+      {showResultModal && (
         <dialog id="result_modal" className="modal modal-open">
           <div className="modal-box">
-            <h3 className="font-bold text-lg">
-              {responseState.success ? "成功" : "エラー"}
-            </h3>
+            <h3 className="font-bold text-lg">{responseState.success ? '成功' : 'エラー'}</h3>
             <p className="py-4">{responseState.message}</p>
             <div className="modal-action">
-              <button className="btn" onClick={handleCloseModal}>
+              <button className="btn" onClick={handleCloseResultModal}>
                 閉じる
               </button>
             </div>
           </div>
         </dialog>
       )}
+
+      {/* Image Trimming Modal */}
+      {isTrimmingModalOpen && (
+        <dialog id="trimming_modal" className="modal modal-open">
+          <div className="modal-box w-11/12 max-w-lg">
+            <h3 className="font-bold text-lg mb-4">画像をトリミング</h3>
+            <div className="flex justify-center">
+              {imgSrc && (
+                <ReactCrop
+                  crop={crop}
+                  onChange={(_, percentCrop) => setCrop(percentCrop)}
+                  onComplete={(c) => setCompletedCrop(c)}
+                  aspect={aspect}
+                  minWidth={100}
+                  minHeight={100}
+                >
+                  <Image
+                    ref={imgRef}
+                    alt="Crop me"
+                    src={imgSrc}
+                    onLoad={onImageLoad}
+                    width={800} // Set a large enough size for the crop component
+                    height={600}
+                    style={{ maxHeight: '70vh' }}
+                  />
+                </ReactCrop>
+              )}
+            </div>
+            <div className="modal-action mt-4">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setTrimmingModalOpen(false)
+                  setImgSrc('')
+                }}
+              >
+                キャンセル
+              </button>
+              <button className="btn btn-primary" onClick={handleCropComplete}>
+                決定
+              </button>
+            </div>
+          </div>
+        </dialog>
+      )}
     </>
-  );
+  )
 }
