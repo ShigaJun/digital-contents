@@ -4,12 +4,15 @@ import { APIProvider, Map as GoogleMap, AdvancedMarker, useMap } from "@vis.gl/r
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Post } from "@/types/post";
+import { MapPinIcon } from "@heroicons/react/24/outline";
 
 interface MapProps {
   view?: 'split' | 'map' | 'timeline';
   setView?: Dispatch<SetStateAction<'split' | 'map' | 'timeline'>>;
   onPinClick?: (post: Post) => void;
   center?: { lat: number; lng: number } | null
+  onCenterChange: (center: { lat: number; lng: number }) => void;
+  isPC: boolean;
 }
 
 type FetchedPost = {
@@ -41,8 +44,9 @@ function MapInner({ center }: { center?: { lat: number; lng: number } | null }) 
   return null;
 }
 
-export default function NekoMap({ view, setView, onPinClick, center }: MapProps) {
+export default function NekoMap({ view, setView, onPinClick, center, onCenterChange, isPC }: MapProps) {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -122,6 +126,58 @@ export default function NekoMap({ view, setView, onPinClick, center }: MapProps)
 
     fetchPosts();
   }, []);
+  
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("お使いのブラウザは位置情報取得に対応していません。");
+      return;
+    }
+
+    setIsGettingLocation(true);
+
+    const handleError = () => {
+      const confirmFallback = window.confirm("現在地の自動取得に失敗しました。\nIPアドレスからおおよその位置を推定しますか？（精度は低くなります）");
+      if (confirmFallback) {
+        fetch('http://ip-api.com/json')
+          .then(res => {
+            if (!res.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return res.json();
+          })
+          .then(data => {
+            if (data.status === 'success' && data.lat && data.lon) {
+              onCenterChange({ lat: data.lat, lng: data.lon });
+            } else {
+              throw new Error('Failed to get location from IP address.');
+            }
+          })
+          .catch(err => {
+            console.error("IP Geolocation Error:", err);
+            alert("IPアドレスからの位置情報取得にも失敗しました。");
+          })
+          .finally(() => {
+            setIsGettingLocation(false);
+          });
+      } else {
+        setIsGettingLocation(false);
+      }
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        onCenterChange({ lat: latitude, lng: longitude });
+        setIsGettingLocation(false);
+      },
+      handleError,
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
@@ -151,6 +207,15 @@ export default function NekoMap({ view, setView, onPinClick, center }: MapProps)
 
   return (
     <div className="relative w-full h-full">
+      <button
+        onClick={handleGetCurrentLocation}
+        disabled={isGettingLocation}
+        className="absolute top-4 left-4 z-10 btn btn-square btn-primary shadow-lg"
+        title="現在地を取得"
+      >
+        {isGettingLocation ? <span className="loading loading-spinner"></span> : <MapPinIcon className="w-6 h-6" />}
+      </button>
+
       <APIProvider apiKey={apiKey}>
         <GoogleMap
           defaultCenter={{ lat: 35.662186020148546, lng: 139.63409803900635, }}
