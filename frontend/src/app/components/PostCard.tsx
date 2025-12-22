@@ -19,9 +19,10 @@ interface PostCardProps {
   onCommentClick: (postId: number) => void
   onMoveMap: (lat: number, lng: number) => void
   onImageClick: (imageUrl: string) => void
+  onDelete?: (postId: number) => void
 }
 
-const PostCard = ({ post, onCommentClick, onMoveMap, onImageClick }: PostCardProps) => {
+const PostCard = ({ post, onCommentClick, onMoveMap, onImageClick, onDelete }: PostCardProps) => {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [isLiked, setIsLiked] = useState(post.isLiked)
@@ -77,12 +78,26 @@ const PostCard = ({ post, onCommentClick, onMoveMap, onImageClick }: PostCardPro
     if (window.confirm('この投稿を本当に削除しますか？')) {
       setIsDeleting(true)
       try {
-        const { error } = await supabase.from('posts').delete().eq('post_id', post.post_id)
-        if (error) throw error
-        router.refresh()
+        const response = await fetch(`/api/posts/${post.post_id}`, {
+          method: 'DELETE',
+        })
+
+        if (!response.ok) {
+          // APIから返されたエラーメッセージを取得
+          const errorData = await response.json().catch(() => ({})) // JSONパース失敗時は空オブジェクト
+          throw new Error(errorData.error || `サーバーエラー: ${response.status}`)
+        }
+
+        // 成功時、親コンポーネントのコールバックを呼ぶか、ページを再更新する
+        if (onDelete) {
+          onDelete(post.post_id)
+        } else {
+          router.refresh()
+        }
       } catch (e) {
-        console.error('削除に失敗しました:', e)
-        alert('投稿の削除に失敗しました。')
+        const errorMessage = e instanceof Error ? e.message : '不明なエラーが発生しました。'
+        console.error('削除に失敗しました:', errorMessage)
+        alert(`投稿の削除に失敗しました: ${errorMessage}`)
       } finally {
         setIsDeleting(false)
       }
