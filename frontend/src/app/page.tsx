@@ -20,7 +20,7 @@ export default function Home() {
   if (!layoutContext) {
     throw new Error("LayoutContext must be used within a LayoutProvider");
   }
-  const { isPC, setIsPostModalOpen, user, setIsLoginPromptOpen } = layoutContext;
+  const { isPC, setIsPostModalOpen, user, setIsLoginPromptOpen, isMapFullScreen } = layoutContext;
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [commentingPostId, setCommentingPostId] = useState<number | null>(null);
 
@@ -69,7 +69,7 @@ export default function Home() {
     <>
       {isPC ? (
         <>
-          <div className="w-128 h-full flex flex-col border-r border-gray-200">
+          <div className={`transition-all duration-300 ease-in-out ${isMapFullScreen ? 'w-0 opacity-0' : 'w-128 h-full flex flex-col border-r border-gray-200'}`}>
             <TabsBar />
             <div className="flex-1 overflow-y-auto">
               <Timeline view="timeline" setView={setView} isPC={isPC}
@@ -86,17 +86,17 @@ export default function Home() {
         <div className="flex-1 flex flex-col min-h-0 w-full">
           <div
             className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              view === "split" ? "h-1/2" : view === "map" ? "flex-1" : "h-0"
+              isMapFullScreen || view === "map" ? "flex-1" : view === "split" ? "h-1/2" : "h-0"
             }`}
           >
               <NekoMap view={view} setView={setView} onPinClick={handlePinClick} center={mapCenter} />
           </div>
-          <div className={`${view === "map" ? "hidden" : ""}`}>
+          <div className={`${isMapFullScreen || view === "map" ? "hidden" : ""}`}>
             <TabsBar />
           </div>
           <div
             className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              view === "split"
+              isMapFullScreen ? 'h-0' : view === "split"
                 ? "flex-1 min-h-0"
                 : view === "timeline"
                 ? "flex-1 min-h-0"

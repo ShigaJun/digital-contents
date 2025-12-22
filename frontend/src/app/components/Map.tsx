@@ -1,9 +1,11 @@
 "use client";
 
 import { APIProvider, Map as GoogleMap, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useContext } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Post } from "@/types/post";
+import { LayoutContext } from "@/lib/contexts/LayoutContext";
+import Image from "next/image";
 
 interface MapProps {
   view?: 'split' | 'map' | 'timeline';
@@ -43,6 +45,11 @@ function MapInner({ center }: { center?: { lat: number; lng: number } | null }) 
 
 export default function NekoMap({ onPinClick, center }: MapProps) {
   const [posts, setPosts] = useState<Post[]>([]);
+  const layoutContext = useContext(LayoutContext);
+  if (!layoutContext) {
+    throw new Error("LayoutContext must be used within a LayoutProvider");
+  }
+  const { isMapFullScreen, setIsMapFullScreen } = layoutContext;
 
   useEffect(() => {
     const supabase = createClient();
@@ -151,6 +158,17 @@ export default function NekoMap({ onPinClick, center }: MapProps) {
 
   return (
     <div className="relative w-full h-full">
+      <button
+        onClick={() => setIsMapFullScreen(prev => !prev)}
+        className="absolute top-4 right-4 z-10 bg-white backdrop-blur-sm p-2 rounded-md shadow-lg hover:bg-white cursor-pointer"
+        aria-label={isMapFullScreen ? '地図を元のサイズに戻す' : '地図を全画面表示'}
+      >
+        {isMapFullScreen ? (
+          <Image src="/fullscreen_close_icon.png" alt="元のサイズに戻す" width={24} height={24} />
+        ) : (
+          <Image src="/fullscreen_icon.png" alt="全画面表示" width={24} height={24} />
+        )}
+      </button>
       <APIProvider apiKey={apiKey}>
         <GoogleMap
           defaultCenter={{ lat: 35.662186020148546, lng: 139.63409803900635, }}
