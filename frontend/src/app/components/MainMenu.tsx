@@ -15,11 +15,20 @@ export default function MainMenu({ open, onClose }: Props) {
   if (!layoutContext) {
     throw new Error("LayoutContext must be used within a LayoutProvider");
   }
-  const { isPC, setIsPostModalOpen } = layoutContext;
+  const { isPC, setIsPostModalOpen, user, setIsLoginPromptOpen } = layoutContext;
 
   const go = (path: string) => {
     router.push(path);
     onClose();
+  };
+
+  const handleUserSettingsClick = () => {
+    if (user) {
+      go("/user-settings");
+    } else {
+      setIsLoginPromptOpen(true);
+      onClose();
+    }
   };
 
   return (
@@ -36,8 +45,8 @@ export default function MainMenu({ open, onClose }: Props) {
 
       <aside
         className={`
-          fixed top-0 left-0 h-full w-64 
-          bg-base-100 shadow-lg p-4 z-50 
+          fixed top-0 left-0 h-full w-64
+          bg-base-100 shadow-lg p-4 z-50
           flex flex-col gap-3
           transform transition-transform duration-300
           ${open ? "translate-x-0" : "-translate-x-full"}
@@ -55,6 +64,11 @@ export default function MainMenu({ open, onClose }: Props) {
         <button
           className="btn btn-outline btn-sm justify-start"
           onClick={() => {
+            if (!user) {
+              setIsLoginPromptOpen(true);
+              onClose(); // メニューを閉じる
+              return;
+            }
             if (isPC) {
               setIsPostModalOpen(true);
               onClose(); // メニューを閉じる
@@ -67,7 +81,7 @@ export default function MainMenu({ open, onClose }: Props) {
         </button>
         <button
           className="btn btn-outline btn-sm justify-start"
-          onClick={() => go("/user-settings")}
+          onClick={handleUserSettingsClick}
         >
           個人設定
         </button>
