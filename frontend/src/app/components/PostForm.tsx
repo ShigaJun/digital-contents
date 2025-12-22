@@ -224,7 +224,7 @@ export default function PostForm({ onClose }: PostFormProps) {
           <div>
             <button
               type="button"
-              className="btn btn-primary rounded-full px-6 py-3 shadow-sm"
+              className="btn btn-accent rounded-full px-6 py-3 shadow-sm"
               onClick={handleSubmitPost}
             >
               <div className="flex items-center gap-2">

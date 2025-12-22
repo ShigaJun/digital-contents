@@ -8,6 +8,8 @@ import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-cr
 import 'react-image-crop/dist/ReactCrop.css'
 import { createClient } from '@/lib/supabase/client'
 import { updateUserAvatar, updateUserName } from './actions'
+import LoginPromptModal from '../components/LoginPromptModal'
+import { useRouter } from 'next/navigation'
 
 // #region Helper functions
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
@@ -84,13 +86,16 @@ const initialState = {
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
-    <button type="submit" className="btn btn-primary w-full" disabled={pending}>
+    <button type="submit" className="btn btn-accent w-full" disabled={pending}>
       {pending ? 'ユーザー名を更新中...' : 'ユーザー名を更新'}
     </button>
   )
 }
 
 export default function UserSettingsForm({ user, profile }: Props) {
+  const router = useRouter()
+  const [isLoginModalOpen, setLoginModalOpen] = useState(!user)
+  
   const [responseState, setResponseState] = useState(initialState)
   const [showResultModal, setShowResultModal] = useState(false)
   const supabase = createClient()
@@ -112,6 +117,15 @@ export default function UserSettingsForm({ user, profile }: Props) {
       setShowResultModal(true)
     }
   }, [responseState])
+
+  const handleCloseLoginModal = () => {
+    setLoginModalOpen(false)
+    router.push('/')
+  }
+
+  if (!user) {
+    return <LoginPromptModal isOpen={isLoginModalOpen} onClose={handleCloseLoginModal} />
+  }
 
   const handleCloseResultModal = () => {
     setShowResultModal(false)
@@ -181,6 +195,7 @@ export default function UserSettingsForm({ user, profile }: Props) {
     window.location.assign('/login')
   }
 
+
   return (
     <>
       <div className="space-y-6 max-w-md mx-auto">
@@ -191,7 +206,7 @@ export default function UserSettingsForm({ user, profile }: Props) {
                 <span className="loading loading-spinner loading-lg"></span>
               </div>
             )}
-            <div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+            <div className="w-24 rounded-full ring ring-accent-content ring-offset-base-100 ring-offset-2">
               <Image
                 src={previewUrl || '/images/dummycat.png'}
                 alt="Avatar preview"
@@ -308,7 +323,7 @@ export default function UserSettingsForm({ user, profile }: Props) {
               >
                 キャンセル
               </button>
-              <button className="btn btn-primary" onClick={handleCropComplete}>
+              <button className="btn btn-accent" onClick={handleCropComplete}>
                 決定
               </button>
             </div>

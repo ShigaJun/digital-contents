@@ -114,7 +114,7 @@ export default function Home() {
       {/* 右下の投稿ボタン */}
       <button
         onClick={handlePostButtonClick}
-        className=" fixed right-6 bottom-6 z-50 btn btn-primary flex items-center gap-2 px-5 py-4 rounded-full"
+        className=" fixed right-6 bottom-6 z-50 btn btn-accent flex items-center gap-2 px-5 py-4 rounded-full"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
