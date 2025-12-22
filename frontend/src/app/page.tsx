@@ -79,7 +79,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex-1 h-full">
-            <NekoMap view="map" setView={setView} onPinClick={handlePinClick} center={mapCenter} />
+            <NekoMap view="map" setView={setView} onPinClick={handlePinClick} center={mapCenter} onCenterChange={setMapCenter} isPC={isPC} />
           </div>
         </>
       ) : (
@@ -89,7 +89,7 @@ export default function Home() {
               view === "split" ? "h-1/2" : view === "map" ? "flex-1" : "h-0"
             }`}
           >
-              <NekoMap view={view} setView={setView} onPinClick={handlePinClick} center={mapCenter} />
+              <NekoMap view={view} setView={setView} onPinClick={handlePinClick} center={mapCenter} onCenterChange={setMapCenter} isPC={isPC} />
           </div>
           <div className={`${view === "map" ? "hidden" : ""}`}>
             <TabsBar />
