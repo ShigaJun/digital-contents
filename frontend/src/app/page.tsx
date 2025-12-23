@@ -81,7 +81,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex-1 h-full">
-            <NekoMap view="map" setView={setView} onPinClick={handlePinClick} center={mapCenter} />
+            <NekoMap view="map" setView={setView} onPinClick={handlePinClick} center={mapCenter} onCenterChange={setMapCenter} isPC={isPC} />
           </div>
         </>
       ) : (
@@ -91,7 +91,7 @@ export default function Home() {
               isMapFullScreen || view === "map" ? "flex-1" : view === "split" ? "h-1/2" : "h-0"
             }`}
           >
-              <NekoMap view={view} setView={setView} onPinClick={handlePinClick} center={mapCenter} />
+              <NekoMap view={view} setView={setView} onPinClick={handlePinClick} center={mapCenter} onCenterChange={setMapCenter} isPC={isPC} />
           </div>
           <div className={`${isMapFullScreen || view === "map" ? "hidden" : ""}`}>
             <TabsBar />
