@@ -2,10 +2,12 @@
 
 import AuthButton from "./AuthButton";
 
+import type { AppUser } from '@/types/user'
+
 type Props = {
-  onMenuClick: () => void;
-  user: any; // SupabaseのUserオブジェクトの型
-};
+  onMenuClick: () => void
+  user: AppUser | null
+}
 
 export default function Header({ onMenuClick, user }: Props) {
   return (
