@@ -3,8 +3,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 
+import type { AppUser } from '@/types/user'
+
 type Props = {
-  user: any // SupabaseのUserオブジェクトの型 + name, avatar_url
+  user: AppUser | null
 }
 
 export default function AuthButton({ user }: Props) {
