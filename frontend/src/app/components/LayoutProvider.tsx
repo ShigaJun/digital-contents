@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, ReactNode, Dispatch, SetStateAction } from 'react'
+import { useState, ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { LayoutContext } from '@/lib/contexts/LayoutContext'
 import { useWindowSize } from '@/lib/hooks/useWindowSize'

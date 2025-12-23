@@ -34,7 +34,9 @@ export default function Home() {
   useEffect(() => {
     if (searchParams.get("login") === "success") {
       router.refresh();
-      setShowSuccessModal(true);
+      setTimeout(() => {
+        setShowSuccessModal(true);
+      }, 0);
       // URLからクエリパラメータを削除
       router.replace("/", { scroll: false });
     }

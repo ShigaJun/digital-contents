@@ -1,10 +1,15 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useFormStatus } from 'react-dom'
 import Image from 'next/image'
-import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
+import ReactCrop, {
+  type Crop,
+  type PercentCrop,
+  centerCrop,
+  makeAspectCrop,
+} from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { createClient } from '@/lib/supabase/client'
 import { updateUserAvatar, updateUserName } from './actions'
@@ -111,11 +116,7 @@ export default function UserSettingsForm({ user, profile }: Props) {
   const imgRef = useRef<HTMLImageElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (responseState.message) {
-      setShowResultModal(true)
-    }
-  }, [responseState])
+
 
   const handleCloseLoginModal = () => {
     setLoginModalOpen(false)
@@ -175,6 +176,7 @@ export default function UserSettingsForm({ user, profile }: Props) {
 
       const result = await updateUserAvatar(formData)
       setResponseState(result)
+      setShowResultModal(true)
 
       // 失敗した場合は、プレビューを元のURLに戻す
       if (!result.success) {
@@ -187,6 +189,7 @@ export default function UserSettingsForm({ user, profile }: Props) {
   const handleNameSubmit = async (formData: FormData) => {
     const result = await updateUserName(formData)
     setResponseState(result)
+    setShowResultModal(true)
   }
 
   const handleLogout = async () => {
@@ -296,8 +299,10 @@ export default function UserSettingsForm({ user, profile }: Props) {
               {imgSrc && (
                 <ReactCrop
                   crop={crop}
-                  onChange={(_, percentCrop) => setCrop(percentCrop)}
-                  onComplete={(c) => setCompletedCrop(c)}
+                  onChange={(_: Crop, percentCrop: PercentCrop) =>
+                    setCrop(percentCrop)
+                  }
+                  onComplete={(c: Crop) => setCompletedCrop(c)}
                   aspect={aspect}
                   minWidth={100}
                   minHeight={100}
